@@ -1,0 +1,61 @@
+# VS Code: lokale Dateien ignorieren, gemeinsame Projektkonfiguration behalten
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+
+# Go: Build-Ergebnisse, Testprogramme und Coverage
+/bin/
+/dist/
+/build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.prof
+coverage.out
+coverage.txt
+coverage.html
+/coverage/
+
+# Lokale Go-Workspace-Konfiguration
+go.work
+go.work.sum
+
+# Spec Kit / Python: lokale Umgebungen und Caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.uv-cache/
+
+# Spec-Kit-Projektdateien bewusst versionieren:
+# .specify/, specs/, .github/ sowie Agent-Anweisungen und Prompts.
+# Auch go.mod und go.sum bleiben im Repository.
+
+# Lokale Zugangsdaten und Umgebungsvariablen
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Logs und temporaere Dateien
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Betriebssystemdateien
+.DS_Store
+Thumbs.db
+Desktop.ini
