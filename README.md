@@ -17,7 +17,7 @@ Das passt sehr gut zur aktuellen Spec-Kit-Philosophie: Specify → Plan → Task
 
 > [!important]
 > 
-> Wir sind an dieser Stelle noch NICHIT im Spec-Driven- Modus
+> Wir sind an dieser Stelle noch NICHIT im Spec-Driven- Modus.
 > Die volgenden Beschreibungen dienen nur zur Orientierung
 
 
