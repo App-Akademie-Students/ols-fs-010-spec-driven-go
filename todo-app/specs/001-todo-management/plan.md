@@ -1,6 +1,6 @@
 # Implementation Plan: Todo-Aufgaben verwalten
 
-**Branch**: `001-todo-management` | **Date**: 2026-10-27 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-todo-management` | **Date**: 2026-10-28 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `specs/001-todo-management/spec.md`; technical direction
 from the user: Go, standard-library `net/http`, an in-memory repository, separated HTTP,
@@ -13,21 +13,23 @@ Build a single-process todo web application. A Go service owns validation and to
 transitions; a concurrency-safe in-memory repository stores todos; standard-library HTTP
 handlers expose JSON creation, listing, status updates, deletion and filtering. The browser UI
 is written in HTML, CSS and TypeScript, compiled to static JavaScript and served with the
-application. Automated Go unit, repository-concurrency and HTTP contract tests verify the
-specified flows; the race detector checks concurrent repository access.
+application. Go unit, repository-concurrency and HTTP contract tests plus Vitest/jsdom browser
+behavior tests verify the specified flows; the race detector checks concurrent repository
+access.
 
 ## Technical Context
 
 **Language/Version**: Go 1.25 or newer; the repository setup guide documents Go 1.25.3.
 
-**Primary Dependencies**: Go standard library, including `net/http`, `encoding/json`,
-`sync` and `embed`; TypeScript compiler as a frontend development dependency. No third-party
+**Primary Dependencies**: Go standard library, including `net/http`, `encoding/json` and
+`sync`; TypeScript, Vitest, and jsdom as frontend development dependencies. No third-party
 Go runtime dependency is planned.
 
 **Storage**: Process-local in-memory repository backed by a map and guarded by
 `sync.RWMutex`; records are lost when the process exits.
 
-**Testing**: `go test ./...`, `go test -race ./...`, HTTP handler tests using `httptest`, and
+**Testing**: From `backend/`, run `go test ./...` and `go test -race ./...`; HTTP handler tests
+use `httptest`. From `frontend/`, run `npm test -- --run` for Vitest/jsdom behavior tests and
 `npm run build` for TypeScript type-checking and compilation.
 
 **Target Platform**: Platforms supported by the selected Go toolchain; application is
@@ -38,9 +40,10 @@ accessed through a modern browser on the local network or machine.
 **Performance Goals**: No formal service-level target is specified. The design is for a
 single-process personal todo list; performance targets and load testing are out of scope.
 
-**Constraints**: Use `net/http`; keep transport, business logic and persistence separate;
-make every repository operation safe under concurrent access; do not imply durable storage;
-validate request bodies and provide consistent user-visible errors.
+**Constraints**: Keep all Go source and its module under `backend/`, and all frontend source
+and build configuration under `frontend/`. Use `net/http`; keep transport, business logic and
+persistence separate; make every repository operation safe under concurrent access; do not
+imply durable storage; validate request bodies and provide consistent user-visible errors.
 
 **Scale/Scope**: One personal list in one running process. No accounts, collaboration,
 external services, persistent storage, import/export, or multi-instance coordination.
@@ -50,11 +53,13 @@ external services, persistent storage, import/export, or multi-instance coordina
 **Pre-research gate**
 
 - Specification-first: PASS — the feature has an approved, clarified specification; each
-  implementation behavior maps to its functional requirements and acceptance scenarios.
+  implementation behavior maps to its functional requirements and acceptance scenarios, and
+  the specification is marked Ready for implementation.
 - Clear, minimal architecture: PASS — the requested HTTP, service and repository boundaries
   are explicit, with no additional runtime framework.
 - Automated behavioral tests: PASS — service, concurrent repository and HTTP behavior will be
-  covered by Go tests; the race detector is part of verification.
+  covered by Go tests, and browser behavior by Vitest/jsdom tests; the race detector is part
+  of verification.
 - Explicit and safe interfaces: PASS — the API contract defines validation and error behavior;
   browser-rendered task text must be treated as untrusted input.
 - Simplicity and verifiability: PASS — the one-process in-memory scope avoids unrequested
@@ -66,8 +71,8 @@ external services, persistent storage, import/export, or multi-instance coordina
   the service; shared mutable state remains behind the repository lock: PASS.
 - JSON and browser contracts expose only the specified task operations and status filters:
   PASS.
-- Go test, race-test, TypeScript build and documented manual browser flow provide verification:
-  PASS.
+- Go test, race-test, frontend behavior tests, TypeScript build and documented browser/API
+  acceptance flows provide verification: PASS.
 - No constitution violations or exceptions require complexity tracking.
 
 ## Project Structure
@@ -88,32 +93,40 @@ specs/001-todo-management/
 ### Source Code (repository root)
 
 ```text
-cmd/todo/
-└── main.go
-internal/todo/
-├── model.go
-├── repository.go
-├── service.go
-├── repository_test.go
-└── service_test.go
-internal/httpapi/
-├── handler.go
-└── handler_test.go
-web/
+backend/
+├── go.mod
+├── cmd/todo/
+│   └── main.go
+└── internal/
+    ├── todo/
+    │   ├── model.go
+    │   ├── repository.go
+    │   ├── service.go
+    │   ├── repository_test.go
+    │   └── service_test.go
+    └── httpapi/
+        ├── handler.go
+        └── handler_test.go
+frontend/
 ├── index.html
 ├── styles.css
 ├── src/
-│   └── app.ts
+│   ├── app.ts
+│   └── app.test.ts
 ├── dist/                 # TypeScript compiler output served by the application
 ├── package.json
-└── tsconfig.json
+├── tsconfig.json
+└── vitest.config.ts
 ```
 
-**Structure Decision**: Use one Go module with an executable under `cmd/todo`. The
-`internal/todo` package owns the domain model, service and repository interface plus
-in-memory implementation. `internal/httpapi` adapts HTTP and JSON to the service. The
-`web` directory contains the static page and TypeScript source; its compiled assets are served
-with the application. Go tests live beside the packages they verify. The API contract is
+**Structure Decision**: Use exactly two top-level source directories: `backend/` and
+`frontend/`. Keep the Go module and executable under `backend/`; `backend/internal/todo`
+owns the domain model, service, repository interface, in-memory implementation and related
+tests, while `backend/internal/httpapi` adapts HTTP and JSON to the service. Keep the static
+page, styles, TypeScript source, package configuration and compiled assets under `frontend/`.
+The backend serves the frontend files from `../frontend` when launched with `backend/` as its
+working directory; this keeps the source trees separate without copying or embedding frontend
+files into Go packages. Go tests live beside the packages they verify. The API contract is
 maintained as OpenAPI under the feature documentation.
 
 ## Complexity Tracking

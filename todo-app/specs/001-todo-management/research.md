@@ -38,13 +38,28 @@
 
 - **Decision**: Keep the UI framework-free. Compile TypeScript to browser JavaScript and
   construct todo rows with DOM APIs and `textContent`; do not interpolate task text into
-  `innerHTML`.
+  `innerHTML`. Use Vitest with jsdom for automated frontend behavior tests.
 - **Rationale**: This meets the requested HTML/CSS/TypeScript stack while avoiding an
   unnecessary runtime framework. Text-node rendering safely displays arbitrary user task
-  titles.
+  titles. Vitest and jsdom support automated DOM-level testing of task entry, status changes,
+  deletion, filtering, and user feedback without a browser server.
 - **Alternatives considered**: Directly inserting task titles as HTML or adding a UI framework.
   The first risks markup injection; the second adds dependencies and architecture not needed
-  by the feature.
+  by the feature. Browser-driven end-to-end testing with Playwright is a broader alternative;
+  it is not required for the specified DOM behavior checks.
+
+## Source directory boundaries
+
+- **Decision**: Keep all Go source, tests, and `go.mod` under `backend/`; keep all frontend
+  source, package configuration, and generated browser assets under `frontend/`. Launch the
+  Go application with `backend/` as its working directory and serve static files from
+  `../frontend`.
+- **Rationale**: This preserves the user's two-directory source layout and avoids copying
+  frontend assets into the Go module merely to embed them. Go and npm commands run from their
+  respective project directories.
+- **Alternatives considered**: Keeping backend source at the repository root or frontend
+  assets under `web/` conflicts with the requested layout. Embedding frontend files from a
+  sibling directory would require an additional generation/copy step or a more complex build.
 
 ## Concurrency verification
 

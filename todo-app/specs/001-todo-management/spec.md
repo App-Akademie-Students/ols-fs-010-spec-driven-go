@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-27
 
-**Status**: Draft
+**Status**: Ready for implementation
 
 **Input**: User description: "Erstelle eine To-Do-Anwendung. Benutzer können Aufgaben erstellen, alle Aufgaben anzeigen, Aufgaben als erledigt markieren und Aufgaben löschen. Benutzer können Aufgaben nach offenen und erledigten Status filtern."
 
@@ -82,19 +82,19 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
 3. **Given** eine Statusfilter-Ansicht ist aktiv, **When** der Benutzer „Alle“ auswählt,
    **Then** werden offene und erledigte Aufgaben angezeigt.
 4. **Given** der ausgewählte Filter hat keine passenden Aufgaben, **When** die Liste angezeigt
-   wird, **Then** sieht der Benutzer einen verständlichen Hinweis, dass keine passenden Aufgaben
-   vorhanden sind.
+   wird, **Then** benennt der Leerzustand den aktiven Status, teilt mit, dass keine passenden
+   Aufgaben vorhanden sind, und ermöglicht den Wechsel zu „Alle“.
 
 ### Edge Cases
 
 - Ein leerer oder nur aus Leerraum bestehender Titel darf keine Aufgabe erzeugen.
-- Eine Filteransicht ohne passende Aufgaben zeigt einen verständlichen Leerzustand statt einer
-  irreführenden Fehlermeldung.
+- Eine Filteransicht ohne passende Aufgaben zeigt den aktiven Status und unterscheidet den
+  Filter-Leerzustand vom Zustand einer insgesamt leeren Aufgabenliste und von einer Fehlermeldung.
 - Eine gelöschte Aufgabe darf nach einem Wechsel zwischen „Alle“, „Offen“ und „Erledigt“ nicht
   erneut erscheinen.
 - Das Markieren als erledigt darf andere Aufgaben und deren Status nicht verändern.
-- Eine leere Aufgabenliste zeigt einen verständlichen Hinweis und erlaubt weiterhin das Anlegen
-  einer Aufgabe.
+- Eine leere Aufgabenliste teilt ausdrücklich mit, dass noch keine Aufgaben vorhanden sind,
+  und weist auf die Möglichkeit zum Anlegen einer Aufgabe hin.
 
 ## Requirements *(mandatory)*
 
@@ -112,8 +112,12 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
   keiner Ansicht mehr erscheinen.
 - **FR-007**: Benutzer MUST die Aufgabenliste auf alle, offene oder erledigte Aufgaben filtern
   können.
-- **FR-008**: Das System MUST bei einer leeren Liste oder einem Filter ohne Treffer einen
-  verständlichen Leerzustand anzeigen.
+- **FR-008**: Das System MUST für eine vollständig leere Aufgabenliste einen Leerzustand
+  anzeigen, der ausdrücklich mitteilt, dass noch keine Aufgaben vorhanden sind, und auf die
+  Möglichkeit zum Anlegen einer Aufgabe hinweist. Hat eine aktive Statusfilter-Ansicht keine
+  Treffer, MUST der Leerzustand ausdrücklich mitteilen, dass keine Aufgaben dem aktiven Filter
+  entsprechen, den aktiven Status benennen und den Wechsel zu „Alle“ ermöglichen. Der
+  Leerzustand MUST vom Feedback für ungültige Eingaben unterscheidbar sein.
 - **FR-009**: Statusänderungen und Löschungen MUST in allen Ansichten konsistent berücksichtigt
   werden.
 
@@ -129,16 +133,23 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
 
 ### Measurable Outcomes
 
-- **SC-001**: Mindestens 95 % der Testpersonen können eine Aufgabe mit gültigem Titel anlegen
-  und sie anschließend in der Gesamtliste wiederfinden.
+- **SC-001**: In einer moderierten Nutzungsprüfung mit 20 Personen, die die Anwendung zuvor
+  noch nicht verwendet haben, können alle 20 ohne Hilfe eine Aufgabe mit einem gültigen Titel
+  anlegen und dieselbe Aufgabe anschließend in der Ansicht „Alle“ wiederfinden. Als Erfolg
+  zählt ausschließlich, wenn beide Schritte für dieselbe Aufgabe abgeschlossen sind.
 - **SC-002**: In allen Abnahmetests wird eine neu angelegte Aufgabe als offen angezeigt, nach
   dem Erledigt-Markieren als erledigt und nach dem Wiederöffnen wieder als offen.
 - **SC-003**: In 100 % der Filterprüfungen enthält die Ergebnisliste ausschließlich Aufgaben
   des gewählten Status; „Alle“ zeigt beide Statusgruppen.
 - **SC-004**: In 100 % der Löschprüfungen erscheint eine gelöschte Aufgabe weder in der
   Gesamtliste noch in einer Statusfilter-Ansicht.
-- **SC-005**: Benutzer erhalten bei ungültigen Titeln und leeren Listen verständliches Feedback
-  und können ohne technische Unterstützung mit der Aufgabenverwaltung fortfahren.
+- **SC-005**: Bei einem leeren oder nur aus Leerraum bestehenden Titel teilt das Feedback
+  ausdrücklich mit, dass der Titel erforderlich ist und keine Aufgabe angelegt wurde. Bei einer
+  vollständig leeren Liste teilt der Leerzustand mit, dass noch keine Aufgaben vorhanden sind,
+  und weist auf die Aufgabenerstellung hin. Bei einer leeren Filteransicht nennt der
+  Leerzustand den aktiven Status, teilt mit, dass keine passenden Aufgaben vorhanden sind, und
+  ermöglicht den Wechsel zu „Alle“. Jeder dieser Zustände ist vom jeweils anderen sowie von
+  einer Fehlermeldung unterscheidbar.
 
 ## Assumptions
 
