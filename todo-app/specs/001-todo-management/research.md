@@ -26,8 +26,10 @@
 
 - **Decision**: Decode JSON from the request body with `json.Decoder`, reject unknown fields,
   limit body size, require exactly one JSON object, validate values in the service, and return
-  a consistent JSON error object. Use `400` for malformed or invalid input, `404` for an
-  unknown todo ID, `201` for creation, `200` for reads/updates, and `204` for deletion.
+  a consistent JSON error object with a non-empty error message. Use `400` for malformed or
+  invalid input, `404` for an unknown todo ID, `500` for unexpected server errors, `201` for
+  creation, `200` for reads/updates, and `204` for deletion. The browser displays a perceivable
+  failure message for unsuccessful actions and never reports a failed request as successful.
 - **Rationale**: Streaming decoding with a size limit avoids unbounded request bodies.
   Strict input and explicit errors prevent accidental acceptance of malformed requests or
   success-shaped failures.
@@ -38,15 +40,16 @@
 
 - **Decision**: Keep the UI framework-free. Compile TypeScript to browser JavaScript and
   construct todo rows with DOM APIs and `textContent`; do not interpolate task text into
-  `innerHTML`. Use Vitest with jsdom for automated frontend behavior tests.
+  `innerHTML`. Use Vitest with jsdom for focused frontend behavior tests and Playwright with
+  Chromium for end-to-end keyboard accessibility coverage.
 - **Rationale**: This meets the requested HTML/CSS/TypeScript stack while avoiding an
   unnecessary runtime framework. Text-node rendering safely displays arbitrary user task
-  titles. Vitest and jsdom support automated DOM-level testing of task entry, status changes,
-  deletion, filtering, and user feedback without a browser server.
+  titles. Vitest and jsdom support fast DOM-level tests; Playwright verifies actual browser
+  keyboard navigation, `:focus-visible` styling, and live-region feedback.
 - **Alternatives considered**: Directly inserting task titles as HTML or adding a UI framework.
   The first risks markup injection; the second adds dependencies and architecture not needed
-  by the feature. Browser-driven end-to-end testing with Playwright is a broader alternative;
-  it is not required for the specified DOM behavior checks.
+  by the feature. jsdom alone cannot verify browser focus rendering or native keyboard interaction,
+  so it is insufficient for the accessibility acceptance criteria.
 
 ## Source directory boundaries
 
@@ -69,6 +72,24 @@
   for unsynchronized memory access during concurrent workloads.
 - **Alternatives considered**: Sequential tests only, which do not exercise the explicit
   concurrent-access requirement.
+
+## Todo ordering and title policy
+
+- **Decision**: Remove leading and trailing characters in Unicode `White_Space` from titles,
+  store the normalized value, allow any remaining Unicode content with no product-level
+  maximum length, and allow duplicate titles. Give every task a distinct ID and return list
+  results in creation order, including filtered results.
+- **Rationale**: This defines normalization consistently across the UI, service, and API while
+  avoiding arbitrary product restrictions. IDs keep same-title tasks independently actionable.
+- **Alternatives considered**: Rejecting duplicate titles or imposing a title limit would add
+  product constraints not requested.
+
+## Browser interaction and deletion policy
+
+- **Decision**: Use keyboard-operable semantic controls, visible keyboard focus, and accessible
+  live status/error feedback. Delete immediately without confirmation and do not provide undo.
+- **Rationale**: These criteria make required interactions and outcomes testable and align with
+  the project constitution while keeping the personal task flow direct.
 
 ## Sources
 

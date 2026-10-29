@@ -13,24 +13,28 @@ Build a single-process todo web application. A Go service owns validation and to
 transitions; a concurrency-safe in-memory repository stores todos; standard-library HTTP
 handlers expose JSON creation, listing, status updates, deletion and filtering. The browser UI
 is written in HTML, CSS and TypeScript, compiled to static JavaScript and served with the
-application. Go unit, repository-concurrency and HTTP contract tests plus Vitest/jsdom browser
-behavior tests verify the specified flows; the race detector checks concurrent repository
-access.
+application. Go unit, repository-concurrency and HTTP contract tests plus Vitest/jsdom behavior
+tests and Playwright/Chromium browser tests verify the specified flows, including keyboard
+accessibility; the race detector checks concurrent repository
+access. Titles are normalized using Unicode `White_Space`, duplicate titles remain distinct by
+ID, and all list/filter results retain creation order. The browser provides keyboard-operable
+controls, visible focus, and perceivable action/error feedback.
 
 ## Technical Context
 
 **Language/Version**: Go 1.25 or newer; the repository setup guide documents Go 1.25.3.
 
 **Primary Dependencies**: Go standard library, including `net/http`, `encoding/json` and
-`sync`; TypeScript, Vitest, and jsdom as frontend development dependencies. No third-party
-Go runtime dependency is planned.
+`sync`; TypeScript, Vitest, jsdom, and Playwright as frontend development dependencies. No
+third-party Go runtime dependency is planned.
 
 **Storage**: Process-local in-memory repository backed by a map and guarded by
 `sync.RWMutex`; records are lost when the process exits.
 
 **Testing**: From `backend/`, run `go test ./...` and `go test -race ./...`; HTTP handler tests
-use `httptest`. From `frontend/`, run `npm test -- --run` for Vitest/jsdom behavior tests and
-`npm run build` for TypeScript type-checking and compilation.
+use `httptest`. From `frontend/`, run `npm test -- --run` for Vitest/jsdom behavior tests,
+`npm run build` for TypeScript type-checking and compilation, and `npm run test:browser` for
+Playwright/Chromium keyboard and accessibility-feedback coverage against the Go application.
 
 **Target Platform**: Platforms supported by the selected Go toolchain; application is
 accessed through a modern browser on the local network or machine.
@@ -44,6 +48,8 @@ single-process personal todo list; performance targets and load testing are out 
 and build configuration under `frontend/`. Use `net/http`; keep transport, business logic and
 persistence separate; make every repository operation safe under concurrent access; do not
 imply durable storage; validate request bodies and provide consistent user-visible errors.
+Use semantic keyboard-operable controls with visible focus and announce success/errors to
+assistive technology. Deletion is immediate and irreversible without a confirmation step.
 
 **Scale/Scope**: One personal list in one running process. No accounts, collaboration,
 external services, persistent storage, import/export, or multi-instance coordination.
@@ -113,6 +119,8 @@ frontend/
 ├── src/
 │   ├── app.ts
 │   └── app.test.ts
+├── e2e/
+│   └── accessibility.test.js
 ├── dist/                 # TypeScript compiler output served by the application
 ├── package.json
 ├── tsconfig.json

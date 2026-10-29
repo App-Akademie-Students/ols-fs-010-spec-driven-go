@@ -30,11 +30,13 @@ Titel und dem Status „offen“ erscheint.
 **Acceptance Scenarios**:
 
 1. **Given** die Aufgabenliste ist leer, **When** der Benutzer einen nicht-leeren Titel eingibt
-   und die Aufgabe anlegt, **Then** erscheint die Aufgabe in der Gesamtliste als offen.
+   und die Aufgabe anlegt, **Then** erscheint die Aufgabe in der Gesamtliste als offen und
+   eine sichtbare Rückmeldung bestätigt die Erstellung.
 2. **Given** es gibt mehrere Aufgaben, **When** der Benutzer die Gesamtliste öffnet,
-   **Then** werden alle Aufgaben mit Titel und Status angezeigt.
+   **Then** werden alle Aufgaben mit Titel und Status in Erstellungsreihenfolge angezeigt.
 3. **Given** der eingegebene Titel besteht nur aus Leerraum, **When** der Benutzer die Aufgabe
-   anlegen möchte, **Then** wird keine Aufgabe erstellt und der Benutzer erhält einen Hinweis.
+   anlegen möchte, **Then** wird keine Aufgabe erstellt und die Rückmeldung sagt, dass ein
+   Titel erforderlich ist und keine Aufgabe erstellt wurde.
 
 ---
 
@@ -52,13 +54,20 @@ weiteren vorhandenen Aufgabe prüfen, dass Löschen sie aus der Liste entfernt.
 **Acceptance Scenarios**:
 
 1. **Given** eine Aufgabe ist offen, **When** der Benutzer sie als erledigt markiert,
-   **Then** wird ihr angezeigter Status erledigt.
+   **Then** wird ihr angezeigter Status erledigt und eine sichtbare Rückmeldung bestätigt die
+   Änderung.
 2. **Given** eine Aufgabe ist erledigt, **When** der Benutzer die Gesamtliste betrachtet,
    **Then** wird sie weiterhin mit dem Status erledigt angezeigt.
 3. **Given** eine Aufgabe wird in der Liste angezeigt, **When** der Benutzer sie löscht,
-   **Then** verschwindet sie aus der Liste und wird auch in keiner Statusfilter-Ansicht angezeigt.
+   **Then** verschwindet sie ohne vorherige Bestätigungsabfrage aus der Liste, wird auch in
+   keiner Statusfilter-Ansicht angezeigt und eine sichtbare Rückmeldung bestätigt das Löschen.
 4. **Given** eine Aufgabe ist erledigt, **When** der Benutzer sie wieder als offen markiert,
-   **Then** wird ihr Status offen und sie erscheint in der Ansicht „Offen“.
+   **Then** wird ihr Status offen, sie erscheint in der Ansicht „Offen“ und eine sichtbare
+   Rückmeldung bestätigt die Änderung.
+
+Für fehlgeschlagene Erstellungs-, Statusänderungs- oder Löschanfragen zeigt die Anwendung eine
+Fehlerrückmeldung statt einer Erfolgsmeldung. Ist die Aufgabe nicht mehr vorhanden, sagt die
+Rückmeldung, dass sie nicht mehr verfügbar ist.
 
 ---
 
@@ -76,9 +85,11 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
 **Acceptance Scenarios**:
 
 1. **Given** die Liste enthält offene und erledigte Aufgaben, **When** der Benutzer „Offen“
-   auswählt, **Then** werden nur offene Aufgaben angezeigt.
+   auswählt, **Then** werden nur offene Aufgaben in ihrer bisherigen Erstellungsreihenfolge
+   angezeigt.
 2. **Given** die Liste enthält offene und erledigte Aufgaben, **When** der Benutzer „Erledigt“
-   auswählt, **Then** werden nur erledigte Aufgaben angezeigt.
+   auswählt, **Then** werden nur erledigte Aufgaben in ihrer bisherigen Erstellungsreihenfolge
+   angezeigt.
 3. **Given** eine Statusfilter-Ansicht ist aktiv, **When** der Benutzer „Alle“ auswählt,
    **Then** werden offene und erledigte Aufgaben angezeigt.
 4. **Given** der ausgewählte Filter hat keine passenden Aufgaben, **When** die Liste angezeigt
@@ -88,6 +99,12 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
 ### Edge Cases
 
 - Ein leerer oder nur aus Leerraum bestehender Titel darf keine Aufgabe erzeugen.
+- Führender und nachgestellter Leerraum gemäß der Unicode-Eigenschaft `White_Space` wird entfernt;
+  der normalisierte Titel wird gespeichert und angezeigt. Titel dürfen ansonsten beliebige
+  Unicode-Zeichen und eine beliebige Produktlänge enthalten.
+- Mehrere Aufgaben dürfen denselben Titel haben; sie bleiben anhand ihrer jeweiligen Aufgabe
+  unterscheidbar.
+- Aufgaben werden in Erstellungsreihenfolge angezeigt; Filter erhalten diese Reihenfolge.
 - Eine Filteransicht ohne passende Aufgaben zeigt den aktiven Status und unterscheidet den
   Filter-Leerzustand vom Zustand einer insgesamt leeren Aufgabenliste und von einer Fehlermeldung.
 - Eine gelöschte Aufgabe darf nach einem Wechsel zwischen „Alle“, „Offen“ und „Erledigt“ nicht
@@ -102,14 +119,20 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
 
 - **FR-001**: Benutzer MUST eine Aufgabe mit einem nicht-leeren Titel anlegen können.
 - **FR-002**: Das System MUST Titel ablehnen, die leer sind oder nach Entfernung führender und
-  nachgestellter Leerzeichen keinen Inhalt enthalten; es MUST den Benutzer über die Ablehnung
-  informieren.
+  nachgestellter Zeichen der Unicode-Eigenschaft `White_Space` keinen Inhalt enthalten. Es MUST
+  den so normalisierten Titel speichern. Andere Zeichen und Titel-Längen sind auf Produktebene
+  nicht eingeschränkt.
+  Bei Ablehnung MUST die Rückmeldung sagen, dass ein Titel erforderlich ist und keine Aufgabe
+  erstellt wurde.
 - **FR-003**: Das System MUST neu angelegte Aufgaben zunächst als offen führen.
 - **FR-004**: Benutzer MUST alle vorhandenen Aufgaben mit Titel und Status anzeigen können.
+  Aufgaben MUST in Erstellungsreihenfolge erscheinen; gefilterte Ansichten MUST diese relative
+  Reihenfolge erhalten.
 - **FR-005**: Benutzer MUST den Status einer Aufgabe zwischen offen und erledigt wechseln
   können.
-- **FR-006**: Benutzer MUST eine angezeigte Aufgabe löschen können; gelöschte Aufgaben MUST in
-  keiner Ansicht mehr erscheinen.
+- **FR-006**: Benutzer MUST eine angezeigte Aufgabe ohne vorherige Bestätigungsabfrage löschen
+  können; das Löschen wirkt sofort und ist nicht rückgängig zu machen. Gelöschte Aufgaben MUST
+  in keiner Ansicht mehr erscheinen.
 - **FR-007**: Benutzer MUST die Aufgabenliste auf alle, offene oder erledigte Aufgaben filtern
   können.
 - **FR-008**: Das System MUST für eine vollständig leere Aufgabenliste einen Leerzustand
@@ -120,12 +143,21 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
   Leerzustand MUST vom Feedback für ungültige Eingaben unterscheidbar sein.
 - **FR-009**: Statusänderungen und Löschungen MUST in allen Ansichten konsistent berücksichtigt
   werden.
+- **FR-010**: Die Anwendung MUST erfolgreiche Erstellung, Statusänderung und Löschung durch
+  sichtbares Feedback mit den Meldungen „Aufgabe erstellt.“, „Status geändert.“ und
+  „Aufgabe gelöscht.“ bestätigen. Bei fehlgeschlagenen API-Anfragen MUST sie „Aktion
+  fehlgeschlagen. Bitte erneut versuchen.“ oder eine genauere Fehlerrückmeldung statt einer
+  Erfolgsmeldung anzeigen. Eine nicht mehr vorhandene Aufgabe MUST als „Aufgabe ist nicht mehr
+  verfügbar.“ gemeldet werden.
+- **FR-011**: Alle interaktiven Bedienelemente MUST mit der Tastatur erreichbar und mit ihren
+  üblichen Tastaturaktionen bedienbar sein. Der Tastaturfokus MUST sichtbar sein. Erfolgs- und
+  Fehlerrückmeldungen MUST für assistive Technologien wahrnehmbar sein.
 
 ### Key Entities
 
 - **Aufgabe**: Ein vom Benutzer verwalteter Eintrag mit einem Titel und einem Status „offen“
-  oder „erledigt“. Aufgaben sind voneinander unterscheidbar, damit einzelne Einträge geändert
-  oder gelöscht werden können.
+  oder „erledigt“. Titel dürfen doppelt vorkommen; Aufgaben sind anhand ihrer jeweiligen
+  Identität unterscheidbar.
 - **Statusfilter**: Eine Auswahl, die bestimmt, ob alle Aufgaben, nur offene oder nur erledigte
   Aufgaben in der Liste erscheinen.
 
@@ -150,17 +182,24 @@ dass jede Filterauswahl genau die passenden Aufgaben zeigt.
   Leerzustand den aktiven Status, teilt mit, dass keine passenden Aufgaben vorhanden sind, und
   ermöglicht den Wechsel zu „Alle“. Jeder dieser Zustände ist vom jeweils anderen sowie von
   einer Fehlermeldung unterscheidbar.
+- **SC-006**: In allen Browser-Abnahmetests können sämtliche interaktiven Elemente ausschließlich
+  per Tastatur erreicht und bedient werden; der Fokus ist sichtbar und Erfolgs- sowie
+  Fehlerrückmeldungen sind für assistive Technologien verfügbar.
 
 ## Assumptions
 
 - Die Anwendung ist für eine einzelne Person und eine persönliche Aufgabenliste vorgesehen;
   Konten, Zusammenarbeit und gemeinsames Bearbeiten sind nicht Teil dieses Umfangs.
-- Ein Aufgabentitel ist erforderlich. Führende und nachgestellte Leerzeichen werden beim
-  Anlegen ignoriert.
+- Ein Aufgabentitel ist erforderlich. Führender und nachgestellter Leerraum gemäß der Unicode-
+  Eigenschaft `White_Space` wird beim Anlegen entfernt und der normalisierte Titel gespeichert;
+  darüber hinaus gibt es keine produktseitige Längen- oder Zeichenbeschränkung.
+- Doppelte Aufgabentitel sind zulässig.
+- Die Aufgabenliste und alle gefilterten Ansichten behalten die Erstellungsreihenfolge bei.
 - Die Ansicht „Alle“ ist die Standardansicht beim Öffnen der Aufgabenliste.
-- Das Löschen entfernt eine Aufgabe unmittelbar und dauerhaft aus der aktuellen Liste; ein
-  Wiederherstellen ist nicht Bestandteil dieses Umfangs.
-- Aufgaben werden während der aktiven Nutzung der Anwendung verwaltet. Verlässliche Aufbewahrung
-  nach einem Neustart ist nicht Bestandteil dieses Funktionsumfangs.
+- Das Löschen entfernt eine Aufgabe unmittelbar und dauerhaft aus der aktuellen Liste, ohne
+  Bestätigungsabfrage; ein Wiederherstellen ist nicht Bestandteil dieses Umfangs.
+- Aufgaben werden nur im Arbeitsspeicher des laufenden Prozesses gehalten und gehen verloren,
+  wenn die Anwendung beendet oder neu gestartet wird. Dauerhafte Speicherung ist nicht
+  Bestandteil dieses Funktionsumfangs.
 - Bearbeiten von Titeln, Fälligkeitstermine, Kategorien und Erinnerungen sind nicht Bestandteil
   dieses Funktionsumfangs.

@@ -10,52 +10,69 @@
 
 ## Requirement Completeness
 
-- [ ] CHK001 - Are the required task attributes and the meaning of each status fully specified for creation and the all-tasks view? [Completeness, Spec §FR-001–FR-005]
-- [ ] CHK002 - Are user-visible outcomes and feedback requirements defined for successful and unsuccessful creation, status changes, and deletion? [Gap, Spec §US-1–US-2, FR-001–FR-006]
-- [ ] CHK003 - Are keyboard operability and accessibility expectations specified for all browser interactions, or explicitly deferred? [Gap, Constitution §IV]
-- [ ] CHK004 - Are API error requirements for invalid requests and unknown task IDs traceable to user-facing outcomes? [Completeness, Contract §paths]
+- [x] CHK001 - Are the required task attributes and the meaning of each status fully specified for creation and the all-tasks view? [Completeness, Spec §FR-001–FR-005]
+- [x] CHK002 - Are user-visible outcomes and feedback requirements defined for successful and unsuccessful creation, status changes, and deletion? [Gap, Spec §US-1–US-2, FR-001–FR-010]
+- Erfüllt: FR-010 legt konkrete Erfolgsmeldungen fest; fehlgeschlagene API-Anfragen und nicht mehr vorhandene Aufgaben erhalten eine definierte Fehlerrückmeldung statt einer Erfolgsmeldung.
+- [x] CHK003 - Are keyboard operability and accessibility expectations specified for all browser interactions, or explicitly deferred? [Gap, Constitution §IV]
+- Erfüllt: FR-011 verlangt Tastaturbedienbarkeit aller interaktiven Elemente, sichtbaren Fokus und für assistive Technologien wahrnehmbare Rückmeldungen.
+- [x] CHK004 - Are API error requirements for invalid requests and unknown task IDs traceable to user-facing outcomes? [Completeness, Contract §paths]
+- Erfüllt: Der API-Vertrag definiert 400/404/500 mit Fehlerobjekt; FR-010 verknüpft Fehlschläge und nicht vorhandene Aufgaben mit UI-Fehlerrückmeldungen.
 
 ## Requirement Clarity
 
-- [ ] CHK005 - Is title normalization clear about which whitespace is removed and whether the normalized title is the value retained? [Clarity, Spec §FR-002, Assumptions]
-- [ ] CHK006 - Are terms such as “verständlicher Hinweis” and “verständlicher Leerzustand” defined with criteria that reviewers can assess consistently? [Ambiguity, Spec §US-1, §US-3, FR-008]
-- [ ] CHK007 - Are task ordering requirements specified, or is the order intentionally unspecified? [Gap, Spec §FR-004]
-- [ ] CHK008 - Are title length and accepted-character constraints specified, or explicitly left unrestricted? [Gap, Spec §FR-001–FR-002, Contract §/api/todos]
+- [x] CHK005 - Is title normalization clear about which whitespace is removed and whether the normalized title is the value retained? [Clarity, Spec §FR-002, Assumptions]
+- Erfüllt: Spec, Datenmodell und API verwenden Unicode `White_Space`; der normalisierte Titel wird gespeichert.
+- [x] CHK006 - Are terms such as “verständlicher Hinweis” and “verständlicher Leerzustand” defined with criteria that reviewers can assess consistently? [Ambiguity, Spec §US-1, §US-3, FR-008]
+- SC-005/FR-008 legen konkrete Inhalte und voneinander unterscheidbare Leerzustände fest, die sich anhand der Kriterien prüfen lassen.
+- [x] CHK007 - Are task ordering requirements specified, or is the order intentionally unspecified? [Gap, Spec §FR-004]
+- Erfüllt: Alle Listen verwenden Erstellungsreihenfolge; Filter erhalten diese Reihenfolge.
+- [x] CHK008 - Are title length and accepted-character constraints specified, or explicitly left unrestricted? [Gap, Spec §FR-001–FR-002, Contract §/api/todos]
+- Erfüllt: Produktebene schränkt Länge und Zeichen außer ausschließlich Unicode-`White_Space` nicht ein.
 
 ## Requirement Consistency
 
-- [ ] CHK009 - Are the user-facing statuses “offen/erledigt” consistently mapped to the contract values `open/completed` across creation, updates, listing, and filters? [Consistency, Spec §FR-003–FR-007, Contract §components.schemas]
-- [ ] CHK010 - Do the default “Alle” view and empty-filter behavior agree between the specification and API contract? [Consistency, Spec §US-3, FR-007–FR-008, Contract §GET /api/todos]
+- [x] CHK009 - Are the user-facing statuses “offen/erledigt” consistently mapped to the contract values `open/completed` across creation, updates, listing, and filters? [Consistency, Spec §FR-003–FR-007, Contract §components.schemas]
+- [x] CHK010 - Do the default “Alle” view and empty-filter behavior agree between the specification and API contract? [Consistency, Spec §US-3, FR-007–FR-008, Contract §GET /api/todos]
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK011 - Is the 95% task-creation success criterion tied to a defined participant group, task conditions, and measurement method? [Measurability, Spec §SC-001]
-- [ ] CHK012 - Can “verständliches Feedback” in SC-005 be evaluated against observable, objective criteria? [Measurability, Spec §SC-005]
+- [x] CHK011 - Is the 100% task-creation success criterion tied to a defined participant group, task conditions, and measurement method? [Measurability, Spec §SC-001]
+- [x] CHK012 - Can “verständliches Feedback” in SC-005 be evaluated against observable, objective criteria? [Measurability, Spec §SC-005]
 
 ## Scenario Coverage
 
-- [ ] CHK013 - Are exception requirements complete for malformed requests, unsupported filters/statuses, and attempts to update or delete unknown task IDs? [Coverage, Contract §responses, Gap]
-- [ ] CHK014 - Are primary, alternate, and empty-result scenarios clear for each filter, including switching back to “Alle”? [Coverage, Spec §US-3, FR-007–FR-009]
+- [x] CHK013 - Are exception requirements complete for malformed requests, unsupported filters/statuses, and attempts to update or delete unknown task IDs? [Coverage, Contract §responses, Gap]
+- [x] CHK014 - Are primary, alternate, and empty-result scenarios clear for each filter, including switching back to “Alle”? [Coverage, Spec §US-3, FR-007–FR-009]
 
 ## Edge Case Coverage
 
-- [ ] CHK015 - Is the policy for duplicate task titles specified, or explicitly left to user discretion? [Gap, Spec §Key Entities]
-- [ ] CHK016 - Are the immediate and permanent effects of deletion, including whether confirmation or recovery is intentionally excluded, clear to users? [Clarity, Spec §US-2, Assumptions]
+- [x] CHK015 - Is the policy for duplicate task titles specified, or explicitly left to user discretion? [Gap, Spec §Key Entities]
+- Erfüllt: Doppelte Titel sind erlaubt; jede Aufgabe bleibt anhand ihrer Identität unterscheidbar.
+- [x] CHK016 - Are the immediate and permanent effects of deletion, including whether confirmation or recovery is intentionally excluded, clear to users? [Clarity, Spec §US-2, Assumptions]
+- Erfüllt: Löschen erfolgt sofort ohne Bestätigung und kann nicht rückgängig gemacht werden.
 
 ## Non-Functional Requirements
 
-- [ ] CHK017 - Are browser interaction requirements for keyboard use and clear action/error communication included in the feature requirements, consistent with the project principles? [Coverage, Constitution §IV, Gap]
-- [ ] CHK018 - Are any performance expectations needed for the single-person, single-process scope stated, or is the absence of formal targets explicitly acceptable? [Assumption, Plan §Technical Context]
+- [x] CHK017 - Are browser interaction requirements for keyboard use and clear action/error communication included in the feature requirements, consistent with the project principles? [Coverage, Constitution §IV, Gap]
+- Erfüllt: FR-010 und FR-011 verankern Aktions-/Fehlerfeedback, Tastaturbedienbarkeit, sichtbaren Fokus und wahrnehmbare Meldungen in der Feature-Spec.
+- [x] CHK018 - Are any performance expectations needed for the single-person, single-process scope stated, or is the absence of formal targets explicitly acceptable? [Assumption, Plan §Technical Context]
 
 ## Dependencies & Assumptions
 
-- [ ] CHK019 - Are the single-user scope and exclusions for accounts, collaboration, and shared lists explicitly accepted as feature boundaries? [Assumption, Spec §Assumptions; Plan §Technical Context]
-- [ ] CHK020 - Are process-local lifetime and loss of tasks after application exit clear in the user-facing requirements, not only in technical documentation? [Clarity, Spec §Assumptions; Plan §Storage]
+- [x] CHK019 - Are the single-user scope and exclusions for accounts, collaboration, and shared lists explicitly accepted as feature boundaries? [Assumption, Spec §Assumptions; Plan §Technical Context]
+- [x] CHK020 - Are process-local lifetime and loss of tasks after application exit clear in the user-facing requirements, not only in technical documentation? [Clarity, Spec §Assumptions; Plan §Storage]
+- Erfüllt: Die Spec sagt ausdrücklich, dass Aufgaben beim Beenden oder Neustart verloren gehen.
 
 ## Ambiguities & Conflicts
 
-- [ ] CHK021 - Do title-validation requirements in the feature specification and API contract agree on blank/whitespace-only values and normalization? [Conflict, Spec §FR-002; Contract §POST /api/todos]
-- [ ] CHK022 - Are status transitions and their effects on active filters consistent across all user scenarios and requirements? [Consistency, Spec §US-2–US-3, FR-005–FR-009]
+- [x] CHK021 - Do title-validation requirements in the feature specification and API contract agree on blank/whitespace-only values and normalization? [Conflict, Spec §FR-002; Contract §POST /api/todos]
+- Erfüllt: Beide definieren Unicode `White_Space` als zu entfernende Zeichen, speichern den normalisierten Titel und lehnen ein leeres Ergebnis ab.
+- [x] CHK022 - Are status transitions and their effects on active filters consistent across all user scenarios and requirements? [Consistency, Spec §US-2–US-3, FR-005–FR-009]
+
+## Review-Ergebnis
+
+- Pass: 22
+- Fail / offen: 0
 
 ## Notes
 

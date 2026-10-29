@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Persönliche Aufgaben einfach verwalten.">
+    <title>Aufgaben verwalten</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/dist/main.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <p class="eyebrow">Persönliche Aufgabenliste</p>
+        <h1>Aufgaben verwalten</h1>
+      </header>
+
+      <section class="panel" aria-labelledby="create-heading">
+        <h2 id="create-heading">Neue Aufgabe</h2>
+        <form id="todo-form" class="todo-form">
+          <label for="todo-title">Aufgabentitel</label>
+          <div class="form-controls">
+            <input id="todo-title" name="title" type="text" autocomplete="off">
+            <button type="submit">Aufgabe hinzufügen</button>
+          </div>
+        </form>
+        <p id="feedback" class="feedback feedback-success" role="status" aria-live="polite" aria-atomic="true"></p>
+        <p id="error-feedback" class="feedback feedback-error" role="alert" aria-live="assertive" aria-atomic="true"></p>
+      </section>
+
+      <section class="tasks-section" aria-labelledby="tasks-heading">
+        <div class="tasks-header">
+          <h2 id="tasks-heading">Deine Aufgaben</h2>
+          <div class="filter-control">
+            <label for="todo-filter">Anzeigen</label>
+            <select id="todo-filter" name="status">
+              <option value="all">Alle</option>
+              <option value="open">Offen</option>
+              <option value="completed">Erledigt</option>
+            </select>
+          </div>
+        </div>
+        <p id="empty-state" class="empty-state" hidden></p>
+        <ul id="todo-list" class="todo-list" aria-label="Aufgaben"></ul>
+      </section>
+    </main>
+  </body>
+</html>

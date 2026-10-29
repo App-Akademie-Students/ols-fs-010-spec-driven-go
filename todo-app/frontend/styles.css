@@ -1,0 +1,253 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #17233c;
+  background: #f3f6fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 20rem;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(100% - 2rem, 52rem);
+  margin: 0 auto;
+  padding: 3rem 0 5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #52617a;
+  font-size: 0.875rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 1.1;
+}
+
+h2 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.panel,
+.todo-item,
+.empty-state {
+  border: 1px solid #dce3ee;
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 0.4rem 1.5rem rgb(24 43 78 / 5%);
+}
+
+.panel {
+  padding: 1.5rem;
+}
+
+.todo-form label,
+.filter-control label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.form-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+input,
+select {
+  min-height: 2.8rem;
+  border: 1px solid #aebbd0;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  color: inherit;
+  background: #fff;
+}
+
+input {
+  flex: 1;
+  min-width: 0;
+}
+
+button {
+  min-height: 2.8rem;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  color: #fff;
+  background: #254ea5;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1c3e87;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #f0a92e;
+  outline-offset: 3px;
+}
+
+.feedback {
+  min-height: 1.4rem;
+  margin: 0.85rem 0 0;
+  font-weight: 600;
+}
+
+.feedback:empty {
+  display: none;
+}
+
+.feedback-success {
+  color: #17613c;
+}
+
+.feedback-error {
+  color: #a3212a;
+}
+
+.tasks-section {
+  margin-top: 2.5rem;
+}
+
+.tasks-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tasks-header h2 {
+  margin-bottom: 0;
+}
+
+.filter-control select {
+  min-width: 9rem;
+}
+
+.todo-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.todo-title {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.todo-status {
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  background: #edf1f7;
+  color: #37445b;
+  font-size: 0.8rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.todo-status-completed {
+  color: #17613c;
+  background: #e6f4eb;
+}
+
+.todo-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.todo-actions button {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.todo-actions .button-danger {
+  color: #92222a;
+  border: 1px solid #e6b7bb;
+  background: #fff;
+}
+
+.todo-actions .button-danger:hover {
+  background: #fff0f1;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 1.25rem;
+  color: #46546c;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 36rem) {
+  .app-shell {
+    padding-top: 2rem;
+  }
+
+  .form-controls,
+  .todo-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tasks-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .todo-actions {
+    width: 100%;
+  }
+
+  .todo-actions button {
+    flex: 1;
+  }
+}

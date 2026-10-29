@@ -9,7 +9,9 @@ paths:
   /api/todos:
     get:
       summary: List todos
-      description: Returns all todos or filters them by status. An omitted status means all.
+      description: >-
+        Returns all todos or filters them by status. An omitted status means all.
+        Results are returned in creation order; filtering preserves that order.
       parameters:
         - name: status
           in: query
@@ -33,6 +35,8 @@ paths:
                       $ref: "#/components/schemas/Todo"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/ServerError"
     post:
       summary: Create a todo
       requestBody:
@@ -47,7 +51,12 @@ paths:
                 title:
                   type: string
                   minLength: 1
-                  description: Trimmed on creation; must contain a non-whitespace character.
+                  description: >-
+                    Leading and trailing characters in the Unicode White_Space
+                    property are removed and the normalized value is stored.
+                    The result must contain at least one character outside that
+                    property. No product-level maximum length or character
+                    restriction applies.
       responses:
         "201":
           description: Created todo
@@ -57,6 +66,10 @@ paths:
                 $ref: "#/components/schemas/Todo"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /api/todos/{id}:
     parameters:
       - name: id
@@ -68,7 +81,7 @@ paths:
           minimum: 1
     patch:
       summary: Change a todo status
-      description: Status can change between open and completed in either direction.
+      description: Status can change between open and completed in either direction. A missing todo returns 404.
       requestBody:
         required: true
         content:
@@ -89,10 +102,15 @@ paths:
                 $ref: "#/components/schemas/Todo"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
     delete:
       summary: Delete a todo
+      description: Deletes the todo immediately without confirmation; deletion cannot be undone.
       responses:
         "204":
           description: Todo deleted; response has no body.
@@ -100,6 +118,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 components:
   schemas:
     TodoStatus:
@@ -124,6 +144,8 @@ components:
       properties:
         error:
           type: string
+          minLength: 1
+          description: A non-empty message describing why the request failed.
   responses:
     BadRequest:
       description: Invalid request or unsupported filter/status value.
@@ -133,6 +155,18 @@ components:
             $ref: "#/components/schemas/Error"
     NotFound:
       description: No todo exists with the requested ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PayloadTooLarge:
+      description: Request body exceeds the 1 MiB transport limit.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServerError:
+      description: Unexpected server-side failure.
       content:
         application/json:
           schema:
