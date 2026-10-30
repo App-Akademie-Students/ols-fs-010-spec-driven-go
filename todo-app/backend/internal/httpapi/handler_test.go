@@ -19,7 +19,7 @@ func TestCreateAndListTodos(t *testing.T) {
 		t.Fatalf("POST status = %d, want %d: %s", createdResponse.Code, http.StatusCreated, createdResponse.Body)
 	}
 	created := decodeTodo(t, createdResponse)
-	if created.Title != "Prepare demo" || created.Status != todo.StatusOpen || created.ID < 1 {
+	if created.Title != "Prepare demo" || created.Status != todo.StatusOpen || created.Priority != todo.PriorityMedium || created.ID < 1 {
 		t.Fatalf("created todo = %#v, want trimmed title, positive ID, and open status", created)
 	}
 	if got := createdResponse.Header().Get("Content-Type"); !strings.HasPrefix(got, "application/json") {
@@ -46,6 +46,116 @@ func TestCreateAndListTodos(t *testing.T) {
 	duplicate := decodeTodo(t, duplicateResponse)
 	if duplicate.ID == created.ID || duplicate.Title != created.Title {
 		t.Fatalf("duplicate todo = %#v, want same title and distinct ID", duplicate)
+	}
+}
+
+func TestPriorityCreateAndUpdateRequests(t *testing.T) {
+	handler := NewHandler(todo.NewService(todo.NewInMemoryRepository()))
+
+	createdResponse := perform(handler, http.MethodPost, "/api/todos", `{"title":"priority task","priority":"low"}`)
+	if createdResponse.Code != http.StatusCreated {
+		t.Fatalf("POST status = %d, want %d: %s", createdResponse.Code, http.StatusCreated, createdResponse.Body)
+	}
+	created := decodeTodo(t, createdResponse)
+	if created.Priority != todo.PriorityLow {
+		t.Fatalf("created priority = %q, want %q", created.Priority, todo.PriorityLow)
+	}
+
+	priorityUpdate := perform(handler, http.MethodPatch, "/api/todos/"+itoa(created.ID), `{"priority":"high"}`)
+	if priorityUpdate.Code != http.StatusOK {
+		t.Fatalf("priority PATCH status = %d, want %d: %s", priorityUpdate.Code, http.StatusOK, priorityUpdate.Body)
+	}
+	updated := decodeTodo(t, priorityUpdate)
+	if updated.Priority != todo.PriorityHigh || updated.Title != created.Title || updated.Status != created.Status {
+		t.Fatalf("priority PATCH result = %#v; want only priority changed", updated)
+	}
+
+	statusOnlyUpdate := perform(handler, http.MethodPatch, "/api/todos/"+itoa(created.ID), `{"status":"completed"}`)
+	if statusOnlyUpdate.Code != http.StatusOK {
+		t.Fatalf("status-only PATCH status = %d, want %d", statusOnlyUpdate.Code, http.StatusOK)
+	}
+	statusOnly := decodeTodo(t, statusOnlyUpdate)
+	if statusOnly.Priority != todo.PriorityHigh || statusOnly.Status != todo.StatusCompleted {
+		t.Fatalf("status-only PATCH result = %#v; want existing priority retained", statusOnly)
+	}
+
+	invalidPriority := perform(handler, http.MethodPatch, "/api/todos/"+itoa(created.ID), `{"priority":"urgent"}`)
+	if invalidPriority.Code != http.StatusBadRequest {
+		t.Fatalf("invalid priority PATCH status = %d, want %d", invalidPriority.Code, http.StatusBadRequest)
+	}
+	assertErrorResponse(t, invalidPriority)
+
+	emptyPriority := perform(handler, http.MethodPost, "/api/todos", `{"title":"empty priority","priority":""}`)
+	if emptyPriority.Code != http.StatusBadRequest {
+		t.Fatalf("empty priority POST status = %d, want %d", emptyPriority.Code, http.StatusBadRequest)
+	}
+	assertErrorResponse(t, emptyPriority)
+}
+
+func TestPriorityFiltersCombineWithStatus(t *testing.T) {
+	handler := NewHandler(todo.NewService(todo.NewInMemoryRepository()))
+	create := func(title, priority string) todo.Todo {
+		t.Helper()
+		body := `{"title":"` + title + `","priority":"` + priority + `"}`
+		response := perform(handler, http.MethodPost, "/api/todos", body)
+		if response.Code != http.StatusCreated {
+			t.Fatalf("POST status = %d, want %d: %s", response.Code, http.StatusCreated, response.Body)
+		}
+		return decodeTodo(t, response)
+	}
+
+	lowOpen := create("low open", "low")
+	highOpen := create("high open", "high")
+	mediumOpen := create("medium open", "medium")
+	highCompleted := create("high completed", "high")
+	completedResponse := perform(handler, http.MethodPatch, "/api/todos/"+itoa(highCompleted.ID), `{"status":"completed"}`)
+	if completedResponse.Code != http.StatusOK {
+		t.Fatalf("PATCH status = %d, want %d", completedResponse.Code, http.StatusOK)
+	}
+
+	tests := []struct {
+		name       string
+		path       string
+		wantIDs    []int64
+		wantStatus int
+	}{
+		{name: "combined open high", path: "/api/todos?status=open&priority=high", wantIDs: []int64{highOpen.ID}, wantStatus: http.StatusOK},
+		{name: "combined completed high", path: "/api/todos?status=completed&priority=high", wantIDs: []int64{highCompleted.ID}, wantStatus: http.StatusOK},
+		{name: "priority only", path: "/api/todos?priority=medium", wantIDs: []int64{mediumOpen.ID}, wantStatus: http.StatusOK},
+		{name: "empty match", path: "/api/todos?status=completed&priority=low", wantIDs: []int64{}, wantStatus: http.StatusOK},
+		{name: "invalid priority", path: "/api/todos?priority=urgent", wantStatus: http.StatusBadRequest},
+		{name: "empty priority", path: "/api/todos?priority=", wantStatus: http.StatusBadRequest},
+		{name: "empty status", path: "/api/todos?status=", wantStatus: http.StatusBadRequest},
+		{name: "repeated priority", path: "/api/todos?priority=high&priority=low", wantStatus: http.StatusBadRequest},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			response := perform(handler, http.MethodGet, testCase.path, "")
+			if response.Code != testCase.wantStatus {
+				t.Fatalf("GET status = %d, want %d: %s", response.Code, testCase.wantStatus, response.Body)
+			}
+			if testCase.wantStatus != http.StatusOK {
+				assertErrorResponse(t, response)
+				return
+			}
+			var result struct {
+				Todos []todo.Todo `json:"todos"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			if len(result.Todos) != len(testCase.wantIDs) {
+				t.Fatalf("GET todos = %#v, want IDs %v", result.Todos, testCase.wantIDs)
+			}
+			for index, wantID := range testCase.wantIDs {
+				if result.Todos[index].ID != wantID {
+					t.Errorf("GET todos[%d].ID = %d, want %d", index, result.Todos[index].ID, wantID)
+				}
+			}
+		})
+	}
+	if lowOpen.ID == 0 {
+		t.Fatal("low priority todo was not created")
 	}
 }
 

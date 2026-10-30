@@ -18,8 +18,47 @@ func TestServiceCreateNormalizesTitleAndStartsOpen(t *testing.T) {
 	if created.Status != StatusOpen {
 		t.Errorf("Create() status = %q, want %q", created.Status, StatusOpen)
 	}
+	if created.Priority != PriorityMedium {
+		t.Errorf("Create() priority = %q, want %q", created.Priority, PriorityMedium)
+	}
 	if created.ID < 1 {
 		t.Errorf("Create() ID = %d, want a positive ID", created.ID)
+	}
+}
+
+func TestServiceCreatesAndUpdatesPriorityWithoutChangingOtherFields(t *testing.T) {
+	service := NewService(NewInMemoryRepository())
+	priorities := []Priority{PriorityLow, PriorityMedium, PriorityHigh}
+	createdTodos := make([]Todo, 0, len(priorities))
+	for _, priority := range priorities {
+		created, err := service.Create("Priority task", priority)
+		if err != nil {
+			t.Fatalf("Create(%q) error = %v", priority, err)
+		}
+		if created.Priority != priority {
+			t.Errorf("Create(%q) priority = %q", priority, created.Priority)
+		}
+		createdTodos = append(createdTodos, created)
+	}
+
+	newPriority := PriorityHigh
+	updated, err := service.Update(createdTodos[0].ID, nil, &newPriority)
+	if err != nil {
+		t.Fatalf("Update(priority only) error = %v", err)
+	}
+	if updated.Priority != PriorityHigh || updated.Title != createdTodos[0].Title || updated.Status != createdTodos[0].Status {
+		t.Errorf("Update(priority only) = %#v; want priority changed and other fields preserved", updated)
+	}
+
+	invalidPriority := Priority("urgent")
+	if _, err := service.Create("Invalid priority", invalidPriority); !errors.Is(err, ErrInvalidPriority) {
+		t.Errorf("Create(invalid priority) error = %v, want ErrInvalidPriority", err)
+	}
+	if _, err := service.Create("Empty priority", Priority("")); !errors.Is(err, ErrInvalidPriority) {
+		t.Errorf("Create(empty priority) error = %v, want ErrInvalidPriority", err)
+	}
+	if _, err := service.Update(createdTodos[1].ID, nil, &invalidPriority); !errors.Is(err, ErrInvalidPriority) {
+		t.Errorf("Update(invalid priority) error = %v, want ErrInvalidPriority", err)
 	}
 }
 
@@ -107,6 +146,51 @@ func TestServiceTransitionsDeleteAndFilters(t *testing.T) {
 	all, err := service.List(FilterAll)
 	if err != nil || len(all) != 1 || all[0].ID != first.ID {
 		t.Fatalf("List(all) after delete = %#v, %v; want first todo only", all, err)
+	}
+}
+
+func TestServiceFiltersByStatusAndPriority(t *testing.T) {
+	service := NewService(NewInMemoryRepository())
+	low, err := service.Create("low open", PriorityLow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	highOpen, err := service.Create("high open", PriorityHigh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	highCompleted, err := service.Create("high completed", PriorityHigh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	completed := StatusCompleted
+	if _, err := service.Update(highCompleted.ID, &completed, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	filtered, err := service.ListWithFilters(FilterOpen, PriorityFilterHigh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filtered) != 1 || filtered[0].ID != highOpen.ID {
+		t.Fatalf("ListWithFilters(open, high) = %#v, want only high open todo", filtered)
+	}
+	filtered, err = service.ListWithFilters(FilterCompleted, PriorityFilterHigh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filtered) != 1 || filtered[0].ID != highCompleted.ID {
+		t.Fatalf("ListWithFilters(completed, high) = %#v, want only high completed todo", filtered)
+	}
+	filtered, err = service.ListWithFilters(FilterAll, PriorityFilterMedium)
+	if err != nil || len(filtered) != 0 {
+		t.Fatalf("ListWithFilters(all, medium) = %#v, %v; want empty results", filtered, err)
+	}
+	if _, err := service.ListWithFilters(FilterAll, PriorityFilter("urgent")); !errors.Is(err, ErrInvalidPriorityFilter) {
+		t.Errorf("ListWithFilters(invalid priority) error = %v, want ErrInvalidPriorityFilter", err)
+	}
+	if low.Priority != PriorityLow {
+		t.Errorf("low todo priority = %q, want %q", low.Priority, PriorityLow)
 	}
 }
 

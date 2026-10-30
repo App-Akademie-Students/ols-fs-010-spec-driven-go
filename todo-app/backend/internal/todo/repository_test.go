@@ -71,6 +71,69 @@ func TestRepositoryRemovesDeletedIDsFromCreationOrder(t *testing.T) {
 	}
 }
 
+func TestRepositoryTreatsLegacyTodosWithoutPriorityAsMedium(t *testing.T) {
+	repository := NewInMemoryRepository()
+	legacy := Todo{ID: 1, Title: "legacy", Status: StatusOpen}
+	repository.todos[legacy.ID] = legacy
+	repository.order = append(repository.order, legacy.ID)
+	repository.nextID = legacy.ID + 1
+
+	todos, err := repository.ListWithFilters(FilterAll, PriorityFilterMedium)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(todos) != 1 || todos[0].Priority != PriorityMedium || todos[0].Title != legacy.Title {
+		t.Fatalf("ListWithFilters(medium) = %#v, want legacy todo as medium", todos)
+	}
+
+	updated, err := repository.UpdateStatus(legacy.ID, StatusCompleted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Priority != PriorityMedium || updated.Status != StatusCompleted {
+		t.Fatalf("UpdateStatus(legacy todo) = %#v, want medium priority and completed status", updated)
+	}
+}
+
+func TestRepositoryCombinesFiltersAndPreservesCreationOrder(t *testing.T) {
+	repository := NewInMemoryRepository()
+	first, err := repository.Create(Todo{Title: "first high open", Status: StatusOpen, Priority: PriorityHigh})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = repository.Create(Todo{Title: "medium open", Status: StatusOpen, Priority: PriorityMedium})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repository.Create(Todo{Title: "second high open", Status: StatusOpen, Priority: PriorityHigh})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = repository.Create(Todo{Title: "high completed", Status: StatusCompleted, Priority: PriorityHigh})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	todos, err := repository.ListWithFilters(FilterOpen, PriorityFilterHigh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(todos) != 2 || todos[0].ID != first.ID || todos[1].ID != second.ID {
+		t.Fatalf("ListWithFilters(open, high) = %#v, want high open todos in creation order", todos)
+	}
+	for _, priority := range []PriorityFilter{PriorityFilterLow, PriorityFilterMedium, PriorityFilterHigh} {
+		todos, err := repository.ListWithFilters(FilterAll, priority)
+		if err != nil {
+			t.Fatalf("ListWithFilters(all, %q) error = %v", priority, err)
+		}
+		for _, item := range todos {
+			if string(item.Priority) != string(priority) {
+				t.Errorf("ListWithFilters(all, %q) returned priority %q", priority, item.Priority)
+			}
+		}
+	}
+}
+
 func TestRepositoryConcurrentOperations(t *testing.T) {
 	repository := NewInMemoryRepository()
 	const workers = 8

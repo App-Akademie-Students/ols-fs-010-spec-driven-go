@@ -21,6 +21,12 @@
           <label for="todo-title">Aufgabentitel</label>
           <div class="form-controls">
             <input id="todo-title" name="title" type="text" autocomplete="off">
+            <label for="todo-priority">Erstellungspriorität</label>
+            <select id="todo-priority" name="priority">
+              <option value="low">low</option>
+              <option value="medium" selected>medium</option>
+              <option value="high">high</option>
+            </select>
             <button type="submit">Aufgabe hinzufügen</button>
           </div>
         </form>
@@ -37,6 +43,13 @@
               <option value="all">Alle</option>
               <option value="open">Offen</option>
               <option value="completed">Erledigt</option>
+            </select>
+            <label for="todo-priority-filter">Prioritätsfilter</label>
+            <select id="todo-priority-filter" name="priority">
+              <option value="all">Alle Prioritäten</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
             </select>
           </div>
         </div>

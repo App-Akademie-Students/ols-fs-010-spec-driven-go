@@ -23,6 +23,12 @@ function mount(fetcher: typeof fetch): void {
       <form id="todo-form">
         <label for="todo-title">Aufgabentitel</label>
         <input id="todo-title" name="title">
+        <label for="todo-priority">Priorität</label>
+        <select id="todo-priority" name="priority">
+          <option value="low">low</option>
+          <option value="medium" selected>medium</option>
+          <option value="high">high</option>
+        </select>
         <button type="submit">Aufgabe hinzufügen</button>
       </form>
       <p id="feedback" role="status" aria-live="polite"></p>
@@ -32,6 +38,13 @@ function mount(fetcher: typeof fetch): void {
         <option value="all">Alle</option>
         <option value="open">Offen</option>
         <option value="completed">Erledigt</option>
+      </select>
+      <label for="todo-priority-filter">Prioritätsfilter</label>
+      <select id="todo-priority-filter">
+        <option value="all">Alle Prioritäten</option>
+        <option value="low">low</option>
+        <option value="medium">medium</option>
+        <option value="high">high</option>
       </select>
       <p id="empty-state" hidden></p>
       <ul id="todo-list"></ul>
@@ -51,6 +64,43 @@ afterEach(() => {
 });
 
 describe("todo app", () => {
+  it("defaults new tasks to medium and allows priority changes", async () => {
+    const created = { id: 2, title: "New task", status: "open", priority: "high" };
+    const fetcher = mockFetch(
+      listResponse([]),
+      response(created, 201),
+      listResponse([created]),
+    );
+    mount(fetcher);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    const createPriority = document.querySelector<HTMLSelectElement>("#todo-priority")!;
+    expect(createPriority.value).toBe("medium");
+    createPriority.value = "high";
+    document.querySelector<HTMLInputElement>("#todo-title")!.value = "New task";
+    document.querySelector("#todo-form")!.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+
+    await vi.waitFor(() => expect(document.querySelector("#todo-list")?.textContent).toContain("high"));
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "/api/todos",
+      expect.objectContaining({ body: JSON.stringify({ title: "New task", priority: "high" }) }),
+    );
+  });
+
+  it("renders a legacy task without priority as medium", async () => {
+    const fetcher = mockFetch(listResponse([firstTodo]));
+    mount(fetcher);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector("#todo-list")?.textContent).toContain(firstTodo.title);
+      expect(document.querySelector(".todo-priority")?.textContent).toBe("medium");
+      expect(document.querySelector<HTMLSelectElement>(".todo-priority-edit select")?.value).toBe("medium");
+    });
+  });
+
   it("shows a helpful global empty state and accessible controls", async () => {
     mount(mockFetch(listResponse([])));
     await vi.waitFor(() => {
@@ -99,7 +149,9 @@ describe("todo app", () => {
     expect(fetcher).toHaveBeenNthCalledWith(
       2,
       "/api/todos",
-      expect.objectContaining({ body: JSON.stringify({ title: "New task" }) }),
+      expect.objectContaining({
+        body: JSON.stringify({ title: "New task", priority: "medium" }),
+      }),
     );
     expect(document.querySelector("#error-feedback")?.textContent).toBe("");
   });
@@ -126,6 +178,33 @@ describe("todo app", () => {
     await vi.waitFor(() => {
       expect(document.querySelector(".todo-status")?.textContent).toBe("Offen");
     });
+  });
+
+  it("updates and displays a task priority without changing its other fields", async () => {
+    const updated = { ...firstTodo, priority: "high" };
+    const fetcher = mockFetch(
+      listResponse([firstTodo]),
+      response(updated),
+      listResponse([updated]),
+    );
+    mount(fetcher);
+    await vi.waitFor(() => expect(document.querySelector("#todo-list")?.textContent).toContain(firstTodo.title));
+
+    const prioritySelect = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Priorität für Aufgabe ändern: First task"]',
+    )!;
+    prioritySelect.value = "high";
+    document.querySelector<HTMLButtonElement>(".todo-priority-edit button")!.click();
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".todo-priority")?.textContent).toBe("high");
+      expect(document.querySelector("#feedback")?.textContent).toBe("Priorität geändert.");
+    });
+    expect(fetcher).toHaveBeenNthCalledWith(
+      2,
+      "/api/todos/1",
+      expect.objectContaining({ body: JSON.stringify({ priority: "high" }) }),
+    );
   });
 
   it("deletes immediately without confirmation and preserves remaining tasks", async () => {
@@ -167,6 +246,57 @@ describe("todo app", () => {
     filter.value = "all";
     filter.dispatchEvent(new Event("change", { bubbles: true }));
     await vi.waitFor(() => expect(document.querySelector("#todo-list")?.textContent).toContain("First task"));
+  });
+
+  it("combines status and priority filters and resets each independently", async () => {
+    const lowOpen = { id: 2, title: "Low open", status: "open", priority: "low" };
+    const highCompleted = { id: 3, title: "High completed", status: "completed", priority: "high" };
+    const mediumOpen = { id: 4, title: "Medium open", status: "open", priority: "medium" };
+    const allTodos = [lowOpen, highCompleted, mediumOpen];
+    const fetcher = mockFetch(
+      listResponse(allTodos),
+      listResponse([highCompleted]),
+      listResponse([highCompleted]),
+      listResponse([highCompleted]),
+      listResponse(allTodos),
+      listResponse([]),
+    );
+    mount(fetcher);
+    await vi.waitFor(() => expect(document.querySelector("#todo-list")?.textContent).toContain("High completed"));
+
+    const statusFilter = document.querySelector<HTMLSelectElement>("#todo-filter")!;
+    const priorityFilter = document.querySelector<HTMLSelectElement>("#todo-priority-filter")!;
+    statusFilter.value = "completed";
+    statusFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+
+    priorityFilter.value = "high";
+    priorityFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+    expect(fetcher).toHaveBeenNthCalledWith(
+      3,
+      "/api/todos?status=completed&priority=high",
+      undefined,
+    );
+    expect(document.querySelector("#todo-list")?.textContent).toContain("High completed");
+
+    statusFilter.value = "all";
+    statusFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(4));
+    expect(fetcher).toHaveBeenNthCalledWith(4, "/api/todos?priority=high", undefined);
+
+    priorityFilter.value = "all";
+    priorityFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(5));
+    expect(fetcher).toHaveBeenNthCalledWith(5, "/api/todos", undefined);
+
+    priorityFilter.value = "low";
+    priorityFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => {
+      expect(document.querySelector("#empty-state")?.textContent).toContain("Priorität");
+      expect(document.querySelector("#empty-state")?.textContent).toContain("low");
+    });
+    expect(fetcher).toHaveBeenNthCalledWith(6, "/api/todos?priority=low", undefined);
   });
 
   it("reports missing tasks as unavailable instead of reporting success", async () => {

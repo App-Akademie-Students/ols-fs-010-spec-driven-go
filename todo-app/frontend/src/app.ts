@@ -1,10 +1,17 @@
 type TodoStatus = "open" | "completed";
 type StatusFilter = "all" | TodoStatus;
+type TodoPriority = "low" | "medium" | "high";
+type PriorityFilter = "all" | TodoPriority;
 
 interface Todo {
   id: number;
   title: string;
   status: TodoStatus;
+  priority: TodoPriority;
+}
+
+interface TodoResponse extends Omit<Todo, "priority"> {
+  priority?: TodoPriority;
 }
 
 const genericFailure = "Aktion fehlgeschlagen. Bitte erneut versuchen.";
@@ -16,12 +23,15 @@ export function mountTodoApp(
 ): void {
   const form = requiredElement<HTMLFormElement>(documentRef, "#todo-form");
   const titleInput = requiredElement<HTMLInputElement>(documentRef, "#todo-title");
+  const createPrioritySelect = requiredElement<HTMLSelectElement>(documentRef, "#todo-priority");
   const filterSelect = requiredElement<HTMLSelectElement>(documentRef, "#todo-filter");
+  const priorityFilterSelect = requiredElement<HTMLSelectElement>(documentRef, "#todo-priority-filter");
   const list = requiredElement<HTMLUListElement>(documentRef, "#todo-list");
   const emptyState = requiredElement<HTMLElement>(documentRef, "#empty-state");
   const feedback = requiredElement<HTMLElement>(documentRef, "#feedback");
   const errorFeedback = requiredElement<HTMLElement>(documentRef, "#error-feedback");
   let activeFilter: StatusFilter = "all";
+  let activePriorityFilter: PriorityFilter = "all";
   let requestSequence = 0;
 
   form.addEventListener("submit", (event) => {
@@ -37,6 +47,15 @@ export function mountTodoApp(
     activeFilter = filter;
     void loadTodos();
   });
+  priorityFilterSelect.addEventListener("change", () => {
+    const filter = priorityFilterSelect.value;
+    if (!isPriorityFilter(filter)) {
+      showError(genericFailure);
+      return;
+    }
+    activePriorityFilter = filter;
+    void loadTodos();
+  });
 
   async function createTodo(): Promise<void> {
     const title = titleInput.value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, "");
@@ -44,14 +63,19 @@ export function mountTodoApp(
       showError("Titel ist erforderlich. Keine Aufgabe erstellt.");
       return;
     }
+    if (!isTodoPriority(createPrioritySelect.value)) {
+      showError("Ungültige Priorität.");
+      return;
+    }
 
     try {
       await request("/api/todos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, priority: createPrioritySelect.value }),
       });
       titleInput.value = "";
+      createPrioritySelect.value = "medium";
       showSuccess("Aufgabe erstellt.");
       await loadTodos();
     } catch (error) {
@@ -74,6 +98,20 @@ export function mountTodoApp(
     }
   }
 
+  async function changePriority(todo: Todo, priority: TodoPriority): Promise<void> {
+    try {
+      await request(`/api/todos/${todo.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority }),
+      });
+      showSuccess("Priorität geändert.");
+      await loadTodos();
+    } catch (error) {
+      showError(errorMessage(error));
+    }
+  }
+
   async function deleteTodo(todo: Todo): Promise<void> {
     try {
       await request(`/api/todos/${todo.id}`, { method: "DELETE" });
@@ -86,7 +124,14 @@ export function mountTodoApp(
 
   async function loadTodos(): Promise<void> {
     const sequence = ++requestSequence;
-    const query = activeFilter === "all" ? "" : `?status=${activeFilter}`;
+    const parameters = new URLSearchParams();
+    if (activeFilter !== "all") {
+      parameters.set("status", activeFilter);
+    }
+    if (activePriorityFilter !== "all") {
+      parameters.set("priority", activePriorityFilter);
+    }
+    const query = parameters.size === 0 ? "" : `?${parameters.toString()}`;
     try {
       const payload = await request(`/api/todos${query}`);
       if (sequence !== requestSequence) {
@@ -106,9 +151,9 @@ export function mountTodoApp(
     emptyState.hidden = todos.length > 0;
     if (todos.length === 0) {
       emptyState.textContent =
-        activeFilter === "all"
+        activeFilter === "all" && activePriorityFilter === "all"
           ? "Noch keine Aufgaben vorhanden. Erstelle deine erste Aufgabe."
-          : `Keine passenden Aufgaben im Status „${statusLabel(activeFilter)}“. Wähle „Alle“, um alle Aufgaben anzuzeigen.`;
+          : emptyFilterMessage(activeFilter, activePriorityFilter);
       return;
     }
 
@@ -124,6 +169,33 @@ export function mountTodoApp(
       const status = documentRef.createElement("span");
       status.className = `todo-status todo-status-${todo.status}`;
       status.textContent = statusLabel(todo.status);
+
+      const priority = documentRef.createElement("span");
+      priority.className = `todo-priority todo-priority-${todo.priority}`;
+      priority.textContent = todo.priority;
+
+      const priorityEdit = documentRef.createElement("div");
+      priorityEdit.className = "todo-priority-edit";
+      const prioritySelect = documentRef.createElement("select");
+      prioritySelect.setAttribute("aria-label", `Priorität für Aufgabe ändern: ${todo.title}`);
+      for (const value of ["low", "medium", "high"] as const) {
+        const option = documentRef.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        option.selected = todo.priority === value;
+        prioritySelect.append(option);
+      }
+      const priorityButton = documentRef.createElement("button");
+      priorityButton.type = "button";
+      priorityButton.textContent = "Priorität speichern";
+      priorityButton.addEventListener("click", () => {
+        if (isTodoPriority(prioritySelect.value)) {
+          void changePriority(todo, prioritySelect.value);
+        } else {
+          showError("Ungültige Priorität.");
+        }
+      });
+      priorityEdit.append(prioritySelect, priorityButton);
 
       const actions = documentRef.createElement("div");
       actions.className = "todo-actions";
@@ -145,7 +217,7 @@ export function mountTodoApp(
       deleteButton.addEventListener("click", () => void deleteTodo(todo));
 
       actions.append(statusButton, deleteButton);
-      row.append(title, status, actions);
+      row.append(title, status, priority, priorityEdit, actions);
       list.append(row);
     }
   }
@@ -199,7 +271,26 @@ function statusLabel(status: TodoStatus): string {
   return status === "open" ? "Offen" : "Erledigt";
 }
 
-function isTodo(value: unknown): value is Todo {
+function emptyFilterMessage(status: StatusFilter, priority: PriorityFilter): string {
+  const filters: string[] = [];
+  if (status !== "all") {
+    filters.push(`Status „${statusLabel(status)}“`);
+  }
+  if (priority !== "all") {
+    filters.push(`Priorität „${priority}“`);
+  }
+  return `Keine passenden Aufgaben für ${filters.join(" und ")}. Wähle „Alle“, um alle Aufgaben anzuzeigen.`;
+}
+
+function isTodoPriority(value: unknown): value is TodoPriority {
+  return value === "low" || value === "medium" || value === "high";
+}
+
+function isPriorityFilter(value: string): value is PriorityFilter {
+  return value === "all" || isTodoPriority(value);
+}
+
+function isTodo(value: unknown): value is TodoResponse {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -209,7 +300,8 @@ function isTodo(value: unknown): value is Todo {
     Number.isSafeInteger(candidate.id) &&
     candidate.id > 0 &&
     typeof candidate.title === "string" &&
-    (candidate.status === "open" || candidate.status === "completed")
+    (candidate.status === "open" || candidate.status === "completed") &&
+    (candidate.priority === undefined || isTodoPriority(candidate.priority))
   );
 }
 
@@ -221,7 +313,7 @@ function parseTodoList(value: unknown): Todo[] {
   if (!Array.isArray(todos) || !todos.every(isTodo)) {
     throw new Error(genericFailure);
   }
-  return todos;
+  return todos.map((todo) => ({ ...todo, priority: todo.priority ?? "medium" }));
 }
 
 async function responseError(response: Response): Promise<string> {

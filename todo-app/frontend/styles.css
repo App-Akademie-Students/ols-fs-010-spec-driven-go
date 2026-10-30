@@ -82,7 +82,14 @@ h2 {
 
 .form-controls {
   display: flex;
+  align-items: end;
   gap: 0.75rem;
+}
+
+.form-controls label {
+  align-self: center;
+  margin: 0;
+  white-space: nowrap;
 }
 
 input,
@@ -197,6 +204,37 @@ select:focus-visible {
   background: #e6f4eb;
 }
 
+.todo-priority {
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  color: #37445b;
+  background: #edf1f7;
+  font-size: 0.8rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.todo-priority-low {
+  color: #17613c;
+  background: #e6f4eb;
+}
+
+.todo-priority-high {
+  color: #92222a;
+  background: #fff0f1;
+}
+
+.todo-priority-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.todo-priority-edit select {
+  min-height: 2.4rem;
+  padding: 0.4rem;
+}
+
 .todo-actions {
   display: flex;
   gap: 0.5rem;
@@ -236,6 +274,10 @@ select:focus-visible {
   .todo-item {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .form-controls label {
+    align-self: auto;
   }
 
   .tasks-header {

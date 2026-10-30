@@ -77,6 +77,11 @@ it("supports keyboard-only actions, visible focus, and accessible feedback", asy
     await expectFocusedWithVisibleOutline(title);
     await page.keyboard.type("Tastaturaufgabe");
 
+    const createPriority = page.getByRole("combobox", { name: "Erstellungspriorität" });
+    await page.keyboard.press("Tab");
+    await expectFocusedWithVisibleOutline(createPriority);
+    await assert.equal(await createPriority.inputValue(), "medium");
+
     const createButton = page.getByRole("button", { name: "Aufgabe hinzufügen" });
     await page.keyboard.press("Tab");
     await expectFocusedWithVisibleOutline(createButton);
@@ -98,8 +103,45 @@ it("supports keyboard-only actions, visible focus, and accessible feedback", asy
     await assert.equal(await filter.inputValue(), "all");
     await page.getByText("Tastaturaufgabe", { exact: true }).waitFor();
 
-    const completeButton = page.getByRole("button", { name: "Als erledigt markieren" });
+    const priorityEditor = page.getByRole("combobox", {
+      name: "Priorität für Aufgabe ändern: Tastaturaufgabe",
+    });
+    await tabUntilFocused(page, priorityEditor);
+    await expectFocusedWithVisibleOutline(priorityEditor);
+    await page.keyboard.press("End");
+    await assert.equal(await priorityEditor.inputValue(), "high");
+    const savePriorityButton = page.getByRole("button", { name: "Priorität speichern" });
     await page.keyboard.press("Tab");
+    await expectFocusedWithVisibleOutline(savePriorityButton);
+    await page.keyboard.press("Enter");
+    await success.getByText("Priorität geändert.", { exact: true }).waitFor();
+    await assert.equal(await page.locator(".todo-priority").textContent(), "high");
+
+    const priorityFilter = page.getByRole("combobox", { name: "Prioritätsfilter" });
+    await tabUntilFocused(page, priorityFilter);
+    await expectFocusedWithVisibleOutline(priorityFilter);
+    await page.keyboard.press("End");
+    await assert.equal(await priorityFilter.inputValue(), "high");
+    await page.getByText("Tastaturaufgabe", { exact: true }).waitFor();
+
+    await page.keyboard.press("Shift+Tab");
+    await expectFocusedWithVisibleOutline(filter);
+    await page.keyboard.press("End");
+    await emptyState.getByText("Priorität „high“", { exact: false }).waitFor();
+    await assert.match(await emptyState.textContent(), /Status.*Priorität/);
+
+    await page.keyboard.press("Tab");
+    await expectFocusedWithVisibleOutline(priorityFilter);
+    await page.keyboard.press("Home");
+    await assert.equal(await priorityFilter.inputValue(), "all");
+    await assert.match(await emptyState.textContent(), /Status/);
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Home");
+    await assert.equal(await filter.inputValue(), "all");
+    await page.getByText("Tastaturaufgabe", { exact: true }).waitFor();
+
+    const completeButton = page.getByRole("button", { name: "Als erledigt markieren" });
+    await tabUntilFocused(page, completeButton);
     await expectFocusedWithVisibleOutline(completeButton);
     await page.keyboard.press("Enter");
     await success.getByText("Status geändert.", { exact: true }).waitFor();
